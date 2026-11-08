@@ -1,0 +1,51 @@
+name: Capture portfolio screenshots
+
+on:
+  push:
+    branches: [arena/5603798b-vantera]
+    paths:
+      - .github/workflows/capture-portfolio.yml
+      - tools/capture/capture.mjs
+      - tools/capture/targets.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capture-portfolio
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install capture tools
+        working-directory: tools/capture
+        run: |
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 sharp@0.33.5
+          npx playwright install --with-deps chromium
+
+      - name: Capture live demos
+        working-directory: tools/capture
+        run: node capture.mjs
+
+      - name: Commit screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add tools/capture/out
+          if git diff --cached --quiet; then
+            echo "No screenshot changes"
+          else
+            git commit -m "chore: capture live demo screenshots [skip ci]"
+            git push
+          fi
