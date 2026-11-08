@@ -1,0 +1,21 @@
+{
+  "name": "VANTERA | Premium Digital Studio",
+  "short_name": "VANTERA",
+  "description": "VANTERA creates premium business websites, high-converting landing pages, and intelligent digital experiences through modern design, AI-assisted development, and technical precision.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#070708",
+  "theme_color": "#070708",
+  "icons": [
+    {
+      "src": "assets/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

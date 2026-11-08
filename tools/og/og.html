@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- Source for assets/brand/og-image.jpg (1200×630). Edit the text below, then render: cd tools/og && npm install puppeteer && node render.mjs -->
+<html><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: "Instrument Serif"; src: url("../../assets/fonts/instrument-serif-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Instrument Serif"; font-style: italic; src: url("../../assets/fonts/instrument-serif-latin-400-italic.woff2") format("woff2"); }
+  @font-face { font-family: "Manrope"; font-weight: 200 800; src: url("../../assets/fonts/manrope-latin-wght-normal.woff2") format("woff2"); }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../assets/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: #070708; }
+  .og { position: relative; width: 1200px; height: 630px; padding: 70px 84px; color: #f3ede2; font-family: Manrope, sans-serif; overflow: hidden;
+    background:
+      radial-gradient(620px 520px at 22% 52%, rgba(207,174,109,.16), transparent 70%),
+      radial-gradient(700px 500px at 100% 0%, rgba(232,211,166,.06), transparent 70%),
+      #070708; }
+  .og::before { content: ""; position: absolute; inset: 0 84px; background: linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 25% 100%; border-right: 1px solid rgba(255,255,255,.035); }
+  .og::after { content: ""; position: absolute; left: 84px; right: 84px; bottom: 96px; height: 1px; background: linear-gradient(90deg, rgba(207,174,109,.55), rgba(207,174,109,.08)); }
+  .row { position: relative; display: flex; align-items: center; gap: 64px; height: 100%; padding-bottom: 40px; }
+  .mark { height: 370px; width: auto; flex: none; filter: drop-shadow(0 30px 60px rgba(0,0,0,.6)); }
+  .kicker { font: 400 15px/1 "JetBrains Mono", monospace; letter-spacing: .28em; text-transform: uppercase; color: #cfae6d; margin-bottom: 26px; }
+  .name { font: 400 92px/1 "Instrument Serif", serif; letter-spacing: .2em; margin-right: -.2em; text-transform: uppercase; }
+  .line { width: 120px; height: 1px; background: #cfae6d; margin: 30px 0 30px; }
+  .tag { font: 400 54px/1.04 "Instrument Serif", serif; letter-spacing: -.01em; }
+  .tag em { font-style: italic; background: linear-gradient(100deg, #f1dfb2, #cfae6d 55%, #a8834a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .foot { position: absolute; left: 84px; right: 84px; bottom: 50px; display: flex; justify-content: space-between; font: 400 14px/1 "JetBrains Mono", monospace; letter-spacing: .2em; text-transform: uppercase; color: rgba(243,237,226,.55); }
+</style></head>
+<body>
+  <div class="og">
+    <div class="row">
+      <img class="mark" src="../../assets/brand/vantera-logo-transparent.png" alt="">
+      <div>
+        <p class="kicker">Premium Digital Studio</p>
+        <p class="name">Vantera</p>
+        <div class="line"></div>
+        <p class="tag">Beyond Design.<br><em>Beyond Development.</em></p>
+      </div>
+    </div>
+    <div class="foot"><span>Websites · Landing Pages · Problem Solving</span><span>Design. Development. Quality.</span></div>
+  </div>
+</body></html>
