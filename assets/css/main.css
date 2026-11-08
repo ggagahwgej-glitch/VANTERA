@@ -109,6 +109,17 @@
 @media (min-width: 1680px) {
   :root { --container: 1480px; }
 }
+/* Scroll- and pointer-driven values are registered as non-inherited, so updating one
+   restyles only the element that uses it, never its whole subtree (smoother scrolling). */
+@property --hero-p { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --progress { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --tl { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --rx { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --ry { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --lx { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ly { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --lz { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
 /* Very large displays: scale the whole rem-based system for an immersive, balanced layout */
 @media (min-width: 2200px) {
   html { font-size: 112.5%; }
@@ -750,11 +761,10 @@ em { font-style: italic; }
   height: auto !important;
   opacity: 0;
   transition: opacity 1.2s var(--ease-out);
-  will-change: transform;
 }
 .frame.is-scrolling .frame__scroll {
   opacity: 1;
-  animation: siteScroll var(--dur, 48s) var(--ease-in-out) 2s infinite alternate;
+  animation: siteScroll var(--dur, 48s) var(--ease-in-out) infinite alternate; /* keyframes open with a hold, so no start delay is needed */
 }
 .frame.is-paused .frame__scroll { animation-play-state: paused; }
 @keyframes siteScroll {
@@ -832,8 +842,8 @@ em { font-style: italic; }
   text-decoration: none;
 }
 .hero__scroll-track { position: relative; width: 1px; height: 30px; overflow: hidden; background: var(--line-2); }
-.hero__scroll-track i { position: absolute; left: 0; top: -40%; width: 1px; height: 40%; background: var(--gold); animation: scrollCue 2.4s var(--ease-in-out) infinite; }
-@keyframes scrollCue { to { top: 100%; } }
+.hero__scroll-track i { position: absolute; left: 0; top: 0; width: 1px; height: 40%; background: var(--gold); transform: translate3d(0, -100%, 0); animation: scrollCue 2.4s var(--ease-in-out) infinite; }
+@keyframes scrollCue { to { transform: translate3d(0, 250%, 0); } }
 .hero__wa {
   justify-self: end;
   display: inline-flex;
@@ -849,7 +859,8 @@ em { font-style: italic; }
 .hero__wa:hover { color: var(--text); }
 
 /* Intro choreography (pure CSS — no loading screen, nothing blocks rendering) */
-.js .intro { animation: introUp 1.1s var(--ease-out) both; animation-delay: calc(var(--d, 0) * 90ms + 60ms); }
+/* backwards (not both): hidden during the delay, then the finished animation releases its GPU layer */
+.js .intro { animation: introUp 1.1s var(--ease-out) backwards; animation-delay: calc(var(--d, 0) * 90ms + 60ms); }
 .js .hero__line > .intro { animation-name: lineUp; animation-duration: 1.2s; }
 .js .intro--visual { animation-name: visualIn; animation-duration: 1.6s; }
 @keyframes introUp { from { opacity: 0; transform: translate3d(0, 22px, 0); } }
@@ -1355,9 +1366,8 @@ em { font-style: italic; }
   width: 100%;
   height: auto;
   opacity: 0;
-  transform: translate3d(0, 0, 0);
+  transform: translateY(0); /* identity 2D transform: no layer, and no layout when previews start/stop */
   transition: opacity 0.6s var(--ease-out), transform 1.6s var(--ease-out);
-  will-change: transform;
 }
 .is-ready > .shot-full { opacity: 1; }
 .case__phone {
@@ -1371,6 +1381,8 @@ em { font-style: italic; }
 .case__phone .phone__screen::before { height: 9px; top: 5px; }
 /* Hover-to-scroll previews (desktop) */
 @media (hover: hover) and (pointer: fine) {
+  /* promote only while the pointer is over the card, just before the preview starts moving */
+  .case:hover .is-ready > .shot-full { will-change: transform; }
   .case__media:hover .is-ready > .shot-full,
   .case__media:focus-within .is-ready > .shot-full {
     transform: translate3d(0, calc(var(--shift, 0px) * -1), 0);
@@ -1379,7 +1391,7 @@ em { font-style: italic; }
 }
 /* Auto-scroll previews on touch screens while in view */
 @media (hover: none), (pointer: coarse) {
-  .case.is-playing .is-ready > .shot-full { animation: previewScroll var(--dur, 14s) var(--ease-in-out) 0.6s infinite alternate; }
+  .case.is-playing .is-ready > .shot-full { animation: previewScroll var(--dur, 14s) var(--ease-in-out) infinite alternate; }
 }
 @keyframes previewScroll {
   0%, 8% { transform: translate3d(0, 0, 0); }
@@ -1499,11 +1511,22 @@ em { font-style: italic; }
   border-radius: 50%;
   border: 1px solid var(--line-2);
   background: var(--bg);
-  transition: border-color 0.6s, box-shadow 0.6s;
 }
-.step__node i { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); transition: background 0.6s, transform 0.6s var(--ease-out); }
-.step.is-lit .step__node { border-color: var(--gold-line); box-shadow: 0 0 0 7px rgba(207, 174, 109, 0.07); }
-.step.is-lit .step__node i { background: var(--gold); transform: scale(1.25); }
+/* Lit state = overlays that fade in (opacity/transform only), so lighting a step stays on the compositor */
+.step__node::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-line);
+  box-shadow: 0 0 0 7px rgba(207, 174, 109, 0.07);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.step__node i { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); transition: transform 0.6s var(--ease-out); }
+.step__node i::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--gold); opacity: 0; transition: opacity 0.6s; }
+.step.is-lit .step__node::before, .step.is-lit .step__node i::after { opacity: 1; }
+.step.is-lit .step__node i { transform: scale(1.25); }
 .step__num { font: 400 0.6875rem/1 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
 .step__title { margin: 14px 0 12px; font: 400 clamp(1.65rem, 2.3vw, 2.15rem)/1.08 var(--font-display); }
 .step p { margin: 0; max-width: 32ch; font-size: 0.95rem; color: var(--text-2); }
@@ -1734,7 +1757,7 @@ em { font-style: italic; }
   border: 1px solid var(--gold-line);
   background: rgba(207, 174, 109, 0.07);
   outline: none;
-  animation: introUp 0.7s var(--ease-out) both;
+  animation: introUp 0.7s var(--ease-out) backwards;
 }
 .form__status-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: none; border-radius: 50%; background: rgba(207, 174, 109, 0.16); color: var(--champagne); }
 .form__status-icon svg { width: 22px; height: 22px; }
@@ -1936,7 +1959,7 @@ em { font-style: italic; }
   border: 1px solid var(--gold);
   opacity: 0;
 }
-.fab.is-visible::before { animation: fabRing 3.6s var(--ease-out) 1s infinite; }
+.fab.is-visible::before { animation: fabRing 3.6s var(--ease-out) infinite; }
 @keyframes fabRing { 0% { transform: scale(1); opacity: 0.6; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
 .fab.is-visible { opacity: 1; transform: none; pointer-events: auto; }
 .fab:hover { border-color: var(--champagne); }
@@ -1982,7 +2005,9 @@ em { font-style: italic; }
    SCROLL REVEALS (CSS animations so they never fight hover transitions)
    ========================================================================== */
 .js .reveal { opacity: 0; }
-.js .reveal.is-in { animation: reveal 1.1s var(--ease-out) both; animation-delay: calc(var(--stagger, 0) * 90ms); }
+/* Stagger is applied by JS (timed class), not animation-delay: delayed animations keep the main thread busy every frame.
+   The end state is the base style and there is no fill, so a finished reveal releases its GPU layer. */
+.js .reveal.is-in { opacity: 1; translate: 0 0; animation: reveal 1.1s var(--ease-out); } /* identity 2D translate: no layout when the animation is released */
 @keyframes reveal { from { opacity: 0; translate: 0 30px; } to { opacity: 1; translate: 0 0; } }
 
 /* ==========================================================================

@@ -229,7 +229,7 @@
           }
         });
         casesWrap.classList.toggle("is-stacked", i > 1);
-        requestUpdate();
+        remeasure();
       });
     }
 
@@ -270,8 +270,12 @@
           (entries) =>
             entries.forEach((en) => {
               if (!en.isIntersecting) return;
-              en.target.classList.add("is-in");
-              revealIO.unobserve(en.target);
+              const el = en.target;
+              revealIO.unobserve(el);
+              // Grouped items reveal in sequence (90 ms apart) via a timed class rather than animation-delay
+              const step = mqReduce.matches ? 0 : parseFloat(el.style.getPropertyValue("--stagger")) || 0;
+              if (step > 0) setTimeout(() => el.classList.add("is-in"), step * 90);
+              else el.classList.add("is-in");
             }),
           { rootMargin: "0px 0px -6% 0px", threshold: 0.06 }
         )
@@ -322,7 +326,9 @@
   const nav = $("[data-nav]");
   const progressBar = $("[data-progress]");
   const hero = $(".hero");
+  const stageEl = $("[data-stage]");
   const timeline = $("[data-timeline]");
+  const timelineFill = timeline ? $(".timeline__fill", timeline) : null;
   const steps = timeline ? $$(".step", timeline) : [];
   const fab = $("[data-fab]");
   let menuOpen = false;
@@ -330,6 +336,19 @@
   let ticking = false;
   let stepMarks = [];
   let fabBlocked = false;
+  let heroH = 1;
+  let stack = []; // visible case studies + their (cached) sticky offsets
+  let needsMeasure = true;
+
+  // Write a CSS custom property only when its value actually changes — unchanged
+  // writes would still invalidate style, so this keeps idle sections free.
+  const setVar = (el, name, value) => {
+    const memo = el._v || (el._v = {});
+    if (memo[name] !== value) {
+      memo[name] = value;
+      el.style.setProperty(name, value);
+    }
+  };
 
   const measureTimeline = () => {
     if (!timeline) return;
@@ -341,11 +360,30 @@
     });
   };
 
+  // Geometry that only changes on resize / filtering — measured once, not every frame
+  const measure = () => {
+    needsMeasure = false;
+    heroH = hero ? Math.max(1, hero.offsetHeight) : 1;
+    stack = casesWrap
+      ? $$(".case:not(.is-filtered-out)", casesWrap).map((el) => ({ el, top: parseFloat(getComputedStyle(el).top) || 0 }))
+      : [];
+    measureTimeline();
+  };
+
   const update = () => {
     ticking = false;
+    if (needsMeasure) measure();
+
+    // 1) Read everything first…
     const y = window.scrollY;
     const vh = window.innerHeight;
+    const max = document.documentElement.scrollHeight - vh;
+    const sRect = statement ? statement.getBoundingClientRect() : null;
+    const tRect = timeline ? timeline.getBoundingClientRect() : null;
+    const stacking = stack.length > 1 && mqStack.matches && casesWrap.classList.contains("is-stacked") && !mqReduce.matches;
+    const caseTops = stacking ? stack.map((c) => c.el.getBoundingClientRect().top) : null;
 
+    // 2) …then write, so a frame never forces an extra style/layout pass
     if (nav) {
       nav.classList.toggle("is-scrolled", y > 24);
       if (!menuOpen) {
@@ -355,39 +393,23 @@
     }
     lastY = y;
 
-    const max = document.documentElement.scrollHeight - vh;
-    if (progressBar) progressBar.style.setProperty("--progress", max > 0 ? (y / max).toFixed(4) : "0");
+    if (progressBar) setVar(progressBar, "--progress", max > 0 ? (y / max).toFixed(4) : "0");
+    if (stageEl && !mqReduce.matches) setVar(stageEl, "--hero-p", clamp(y / heroH, 0, 1).toFixed(3));
 
-    if (hero && !mqReduce.matches) hero.style.setProperty("--hero-p", clamp(y / hero.offsetHeight, 0, 1).toFixed(3));
+    if (sRect) setVar(statement, "--p", clamp((vh * 0.85 - sRect.top) / (sRect.height + vh * 0.35), 0, 1).toFixed(3));
 
-    if (statement) {
-      const r = statement.getBoundingClientRect();
-      const p = clamp((vh * 0.85 - r.top) / (r.height + vh * 0.35), 0, 1);
-      statement.style.setProperty("--p", p.toFixed(3));
-    }
-
-    if (timeline) {
-      const r = timeline.getBoundingClientRect();
-      const p = clamp((vh * 0.72 - r.top) / Math.max(1, r.height * 0.9), 0, 1);
-      timeline.style.setProperty("--tl", p.toFixed(3));
+    if (tRect) {
+      const p = clamp((vh * 0.72 - tRect.top) / Math.max(1, tRect.height * 0.9), 0, 1);
+      if (timelineFill) setVar(timelineFill, "--tl", p.toFixed(3));
       steps.forEach((s, i) => s.classList.toggle("is-lit", p >= (stepMarks[i] || 0) - 0.01 && p > 0));
     }
 
     // Stacked case studies: the covered card recedes as the next one arrives
-    if (casesWrap) {
-      const visible = $$(".case:not(.is-filtered-out)", casesWrap);
-      const stacking = mqStack.matches && casesWrap.classList.contains("is-stacked") && !mqReduce.matches;
-      visible.forEach((c, i) => {
-        let s = 0;
-        const next = visible[i + 1];
-        if (stacking && next) {
-          const stickyTop = parseFloat(getComputedStyle(next).top) || 0;
-          const nt = next.getBoundingClientRect().top;
-          s = clamp((vh - nt) / Math.max(1, vh - stickyTop), 0, 1);
-        }
-        c.style.setProperty("--shrink", s.toFixed(3));
-      });
-    }
+    stack.forEach((c, i) => {
+      let s = 0;
+      if (stacking && i < stack.length - 1) s = clamp((vh - caseTops[i + 1]) / Math.max(1, vh - stack[i + 1].top), 0, 1);
+      setVar(c.el, "--shrink", s.toFixed(3));
+    });
 
     if (fab) fab.classList.toggle("is-visible", y > vh * 0.85 && !fabBlocked && !menuOpen);
   };
@@ -397,19 +419,14 @@
       requestAnimationFrame(update);
     }
   };
-  window.addEventListener("scroll", requestUpdate, { passive: true });
-  window.addEventListener(
-    "resize",
-    debounce(() => {
-      measureTimeline();
-      requestUpdate();
-    }, 150)
-  );
-  window.addEventListener("load", () => {
-    measureTimeline();
+  const remeasure = () => {
+    needsMeasure = true;
     requestUpdate();
-  });
-  measureTimeline();
+  };
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", debounce(remeasure, 150));
+  window.addEventListener("load", remeasure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
   update();
 
   // Hide the floating WhatsApp button where it would compete with the main CTAs
