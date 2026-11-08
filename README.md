@@ -30,12 +30,12 @@ assets/
   fonts/                    Self-hosted fonts (SIL Open Font License, see OFL.txt)
   brand/                    Official logo + icons + share image
   portfolio/                Optimised project screenshots (generated)
-  services/                 Service-card thumbnails (generated, see below)
+  services/                 Service-card images (AI-generated, see below)
 favicon.ico, site.webmanifest, robots.txt
 vercel.json, .vercelignore  Hosting config (caching + security headers)
 tools/
-  capture/                  Automatic screenshot capture of live demos (GitHub Action),
-                            plus services.mjs for the service-card thumbnails (run manually)
+  capture/                  Automatic screenshot capture of live demos (GitHub Action)
+  services/                 AI-generated masters + build.mjs for the service-card images (run manually)
   brand/build.mjs           Regenerates logo sizes and icons from the master logo
   og/                       Source + renderer for the social share image
 ```
@@ -119,34 +119,35 @@ Prefer your own screenshots? Save WebP files with these sizes:
 
 ---
 
-## Service-card thumbnails
+## Service-card images
 
-Each of the six service cards opens with a quiet window onto real VANTERA project work: a hand-picked crop of the portfolio captures.
+Each of the six service cards opens with an AI-generated image in the brand's black-and-gold language, made for this site. There's no text in them, no people and no stock photography:
 
-| Card | Shows |
+| Card | Image |
 |---|---|
-| 01 Premium Website Development | Imperial Royal: Signature Collection |
-| 02 High-Converting Landing Pages | Elite Academy: landing-page hero |
-| 03 Website Error Fixing & Bug Resolution | ABC Estates: curated collections |
-| 04 Website Optimization | Imperial Royal: search and filter interface |
-| 05 AI-Assisted Development | Elite Academy: programme cards |
-| 06 Website Testing & Quality Assurance | All three demos on mobile |
+| 01 Premium Website Development | A laptop on black stone with a refined, gold-accented layout |
+| 02 High-Converting Landing Pages | A phone on black glass with a gold call-to-action button |
+| 03 Website Error Fixing & Bug Resolution | Gold tweezers placing a single component on a circuit board |
+| 04 Website Optimization | A precision gauge with its gold needle swept high |
+| 05 AI-Assisted Development | Gold neural filaments |
+| 06 Website Testing & Quality Assurance | Laptop, tablet and phone side by side |
 
-- Files are `assets/services/service-01…06-{480,720,960}.webp` (2:1). The browser downloads only the size the screen needs, and the largest file is under 30 KB.
+- Files are `assets/services/service-01…06-{480,720,960}.webp` (2:1). The browser downloads only the size the screen needs. All six 960 px files together are about 160 KB, and they load only when a visitor reaches the section.
 - They are decorative (empty `alt`, hidden from screen readers), so assistive technology reads the cards exactly as before.
 - The `sizes` attribute deliberately states a width about 16% larger than the rendered window. Without that margin Chrome sometimes picks the next smaller file, which looks soft on high-density screens. A comment in `index.html` explains this.
-- The dark veil behind the card number and line icon is baked into the image files, and the only animation is an opacity change on hover, so nothing has to be repainted while scrolling.
+- Every file already carries its final look: gently dimmed, with a dark veil behind the card number and line icon. Phones draw them as they are, fully opaque. On computers with a mouse they brighten slightly on hover (an opacity change only).
+- They are encoded at high quality (WebP q92) on purpose: dark, smooth gradients break into visible blocks at ordinary settings.
 
-**Regenerating.** This is manual on purpose and not part of the capture workflow, so a redesign of a live demo can't silently move a crop onto an awkward part of the page:
+**Replacing an image.** Save the new master as `tools/services/src/service-0N.webp`:
+- at least 1344 × 672 px, roughly 2:1 or wider;
+- subject low and centred, with no text;
+- calm and dark across the top, where the number and icon sit.
+
+If the subject is off-centre, adjust its `focus` value at the top of `tools/services/build.mjs`. Then run:
 
 ```bash
-cd tools/capture && npm install --no-save sharp@0.33.5 && node services.mjs
+cd tools/services && npm install --no-save sharp@0.33.5 && node build.mjs
 ```
-
-The crops are listed at the top of `tools/capture/services.mjs` (`left`, `top`, `width`, `height` in capture pixels). When changing them:
-- keep every crop at least 960 source pixels wide, so nothing is upscaled;
-- leave calm space at the top for the number and icon;
-- keep the demos' illustrative statistics out of frame.
 
 ---
 
@@ -235,6 +236,19 @@ Netlify, Cloudflare Pages and GitHub Pages work the same way.
 - Phones and tablets skip the heaviest decorative layers.
 - `prefers-reduced-motion` turns off smooth scrolling and entrance animations.
 
+**Smooth on phones**
+
+Some Android graphics chips re-draw parts of the screen without clearing them first. Translucent colours then build up into brighter patches or seams, and areas re-drawn mid-scroll can briefly show coloured noise. The site avoids both:
+- Lines, secondary text and panel backgrounds use opaque colours that look identical to the original translucent ones.
+- On touch screens, content is drawn once and then left alone while scrolling:
+  - sections appear without entrance fades;
+  - the philosophy statement is shown fully lit;
+  - the navigation bar is solid instead of frosted glass;
+  - hover effects are kept for computers with a mouse.
+- The scroll progress bar and the process timeline move on their own small layers, so they never trigger a repaint.
+
+When adding styles, keep large surfaces opaque. During scroll, animate only `transform` and `opacity`.
+
 **Accessibility**
 - Semantic landmarks, a skip link, visible focus states and labelled controls.
 - While the mobile menu is open, the rest of the page is inert so keyboard focus stays in the menu; Esc closes it and returns focus to the menu button.
@@ -256,9 +270,18 @@ Netlify, Cloudflare Pages and GitHub Pages work the same way.
 - The WhatsApp message was verified word for word.
 - "Copy message" and "Copy number" put the right text on the clipboard.
 
-**Service thumbnails**
-- Checked at 14 widths (360–2560 px) and 11 screen and pixel-density combinations: the right file is chosen and stays sharp, the window keeps its 2:1 shape, the number and icon stay inside it, and nothing overflows.
-- Scrolling cost was measured against the page without thumbnails: the difference is within measurement noise.
+**Service images and phone rendering**
+- Checked at 14 widths (360–2560 px) and 11 screen and pixel-density combinations. At every one:
+  - the right file is chosen and stays sharp;
+  - the window keeps its 2:1 shape;
+  - the number and icon stay inside it;
+  - nothing overflows.
+- Compression was compared with the uncompressed images in the darkest areas: no visible blocking.
+- A phone-sized scroll through the page was traced before and after the phone fixes:
+  - style recalculation fell by about two-thirds;
+  - paint time fell by about 40%;
+  - images re-painted during the scroll fell by almost 90%.
+- Every section was compared pixel by pixel with the previous design. The opaque colours render the same, apart from text anti-aliasing.
 
 **Interface behaviour**
 - Portfolio filters, FAQ accordion (one answer open at a time), mobile menu, reduced motion and no-JavaScript mode were all checked.

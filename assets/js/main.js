@@ -23,6 +23,8 @@
   const mqReduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   const mqFine = window.matchMedia("(hover: hover) and (pointer: fine)");
   const mqStack = window.matchMedia("(min-width: 1024px) and (min-height: 740px)");
+  // Touch screens draw the statement fully lit and still (see main.css), so it needs no scroll updates
+  const mqTouch = window.matchMedia("(hover: none), (pointer: coarse)");
   const esc = (s) =>
     String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const isHttp = (u) => /^https?:\/\/[^\s]+\.[^\s]+$/i.test(String(u || "").trim());
@@ -378,7 +380,7 @@
     const y = window.scrollY;
     const vh = window.innerHeight;
     const max = document.documentElement.scrollHeight - vh;
-    const sRect = statement ? statement.getBoundingClientRect() : null;
+    const sRect = statement && !mqTouch.matches ? statement.getBoundingClientRect() : null;
     const tRect = timeline ? timeline.getBoundingClientRect() : null;
     const stacking = stack.length > 1 && mqStack.matches && casesWrap.classList.contains("is-stacked") && !mqReduce.matches;
     const caseTops = stacking ? stack.map((c) => c.el.getBoundingClientRect().top) : null;
@@ -599,7 +601,7 @@
     }
   }
 
-  /* Service thumbnails: if one ever fails to load, remove it so the card keeps its dark
+  /* Service images: if one ever fails to load, remove it so the card keeps its dark
      window instead of showing a broken-image box. */
   $$(".service__media img").forEach((img) => img.addEventListener("error", () => img.remove(), { once: true }));
 

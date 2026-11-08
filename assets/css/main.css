@@ -77,14 +77,17 @@
   --bg-2: #0b0b0d;
   --surface: #111113;
   --surface-2: #17171a;
-  --line: rgba(244, 236, 222, 0.085);
-  --line-2: rgba(244, 236, 222, 0.15);
+  /* Lines and secondary text are opaque, pre-blended equivalents of the original translucent warm whites
+     (8.5% / 15% lines, 74% / 58% text). Some Android GPUs re-draw parts of a tile without clearing it,
+     which makes translucent colours build up into brighter patches; opaque colours stay identical. */
+  --line: #1f1e1d;
+  --line-2: #2e2d2c;
   --gold-line: rgba(214, 182, 122, 0.32);
   --grid-line: rgba(244, 236, 222, 0.03);
 
   --text: #f4efe6;
-  --text-2: rgba(244, 239, 230, 0.74);
-  --text-3: rgba(244, 239, 230, 0.58);
+  --text-2: #b7b4ad;
+  --text-3: #928f8a;
 
   --champagne: #e8d3a6;
   --gold: #cfae6d;
@@ -141,6 +144,7 @@ html {
   html { scroll-behavior: smooth; }
 }
 body {
+  position: relative; /* containing block for the column guides */
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
@@ -152,10 +156,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: clip;
 }
-/* Architectural column guides */
+/* Architectural column guides. They scroll with the page (being vertical, they look identical) instead
+   of being fixed, so phones don't keep a full-screen transparent GPU layer under the whole page. */
 body::before {
   content: "";
-  position: fixed;
+  position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
@@ -447,6 +452,7 @@ em { font-style: italic; }
   background: var(--metal);
   transform-origin: 0 50%;
   transform: scaleX(var(--progress, 0));
+  will-change: transform; /* own tiny layer: the per-frame scaleX never repaints the nav */
 }
 .nav__toggle {
   display: none;
@@ -1043,7 +1049,7 @@ em { font-style: italic; }
   border-radius: var(--radius-l);
   border: 1px solid var(--line);
   /* = 3.6% → 1.2% white over --bg, pre-blended and opaque: renders identically on every GPU/rasteriser
-     and keeps the column guides from running through the card and breaking around the thumbnail */
+     and keeps the column guides from running through the card and breaking around the image */
   background: linear-gradient(180deg, #101011, #0a0a0b);
   transition: transform 0.6s var(--ease-out), border-color 0.4s;
 }
@@ -1070,9 +1076,7 @@ em { font-style: italic; }
   transition: opacity 0.5s;
   pointer-events: none;
 }
-.service:hover { transform: translateY(-5px); }
-.service:hover::before, .service:hover::after { opacity: 1; }
-/* Top band = a quiet window onto real project work; number and line-art sit on top of it */
+/* Top band = a window onto an image for the service; number and line-art sit on top of it */
 .service__top {
   position: relative;
   z-index: 0;
@@ -1087,31 +1091,21 @@ em { font-style: italic; }
   background: var(--bg-2);
 }
 .service__media { position: absolute; inset: 0; z-index: 0; }
-.service__media img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  opacity: 0.56;
-  transition: opacity 0.7s var(--ease-out); /* opacity only: composited, no resampling shimmer */
-}
-/* The legibility veil under the number and line-art is baked into the image files
-   (tools/capture/services.mjs): no live gradients to repaint while scrolling. */
-.service:hover .service__media img { opacity: 0.84; }
-/* hairline frame drawn above the image, so rounded corners never show a seam */
+/* Each file already carries its final look (dimmed, with the legibility veil under the number and
+   line-art baked in by tools/services/build.mjs), so it is drawn as-is: opaque, nothing to recompute. */
+.service__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* hairline frame drawn above the image (opaque colour), so rounded corners never show a seam */
 .service__top::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 3;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(244, 236, 222, 0.1);
+  box-shadow: inset 0 0 0 1px #262522;
   pointer-events: none;
 }
 .service__num, .service__art { position: relative; z-index: 2; }
 .service__num { font: 400 0.75rem/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-2); padding-top: 2px; }
-@media (hover: none) { .service__media img { opacity: 0.66; } }
 .service__title { margin: 0 0 14px; font: 400 clamp(1.65rem, 2.15vw, 2.05rem)/1.06 var(--font-display); letter-spacing: -0.005em; text-wrap: balance; }
 .service__desc { margin: 0 0 24px; font-size: 0.95rem; color: var(--text-2); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 28px; padding: 0; list-style: none; }
@@ -1119,7 +1113,7 @@ em { font-style: italic; }
   padding: 7px 11px;
   border-radius: 999px;
   border: 1px solid var(--line-2);
-  background: rgba(255, 255, 255, 0.02);
+  background: #111112; /* = 2% white over the card, pre-blended (opaque) */
   font: 400 0.6875rem/1 var(--font-mono);
   letter-spacing: 0.05em;
   color: var(--text-2);
@@ -1151,38 +1145,46 @@ em { font-style: italic; }
   stroke-linejoin: round;
   overflow: visible;
 }
-/* narrow thumbnail windows (2-up tablets, 3-up small laptops): smaller line-art, same ~1.2px stroke */
+/* narrow image windows (2-up tablets, 3-up small laptops): smaller line-art, same ~1.2px stroke */
 @media (min-width: 700px) and (max-width: 899px), (min-width: 1100px) and (max-width: 1299px) {
   .service__art { width: 52px; height: 52px; stroke-width: 1.45; }
 }
 .art-browser circle { fill: rgba(232, 211, 166, 0.78); stroke: none; }
 .art-fill { fill: rgba(232, 211, 166, 0.14); transition: fill 0.5s; }
-.service:hover .art-fill { fill: var(--gold); }
 .art-draw { stroke-dasharray: 64; stroke-dashoffset: 0; }
-.service:hover .art-draw { animation: redraw 1.1s var(--ease-out); }
 @keyframes redraw { from { stroke-dashoffset: 64; } }
 .art-squiggle { stroke: #e3a9a4; transition: opacity 0.4s; }
 .art-check { stroke: var(--gold); stroke-width: 1.6; stroke-dasharray: 26; stroke-dashoffset: 26; transition: stroke-dashoffset 0.6s var(--ease-out) 0.15s; }
-.service:hover .art-squiggle { opacity: 0; }
-.service:hover .art-check { stroke-dashoffset: 0; }
 .art-needle { transform-origin: 32px 44px; transform: rotate(-8deg); transition: transform 1.1s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .art-needle circle { fill: var(--gold); stroke: none; }
-.service:hover .art-needle { transform: rotate(78deg); }
 .art-star { transform-origin: 32px 26px; transition: transform 0.9s var(--ease-out), fill 0.5s; fill: rgba(232, 211, 166, 0.08); }
-.service:hover .art-star { transform: rotate(90deg) scale(1.06); fill: rgba(232, 211, 166, 0.3); }
 .art-ai circle { fill: var(--bg); }
 .art-tick { stroke: var(--gold); stroke-width: 1.6; stroke-dasharray: 14; stroke-dashoffset: 14; transition: stroke-dashoffset 0.45s var(--ease-out); }
-.service:hover .art-tick { stroke-dashoffset: 0; }
-.service:hover .art-tick.t2 { transition-delay: 0.15s; }
-.service:hover .art-tick.t3 { transition-delay: 0.3s; }
-@media (hover: none) {
-  .service.is-in .art-squiggle { opacity: 0; transition-delay: 0.9s; }
-  .service.is-in .art-check { stroke-dashoffset: 0; transition-delay: 1.1s; }
-  .service.is-in .art-tick { stroke-dashoffset: 0; transition-delay: 0.9s; }
-  .service.is-in .art-tick.t2 { transition-delay: 1.05s; }
-  .service.is-in .art-tick.t3 { transition-delay: 1.2s; }
-  .service.is-in .art-needle { transform: rotate(60deg); transition-delay: 0.8s; }
-  .service.is-in .art-fill { fill: var(--gold); transition-delay: 0.8s; }
+/* Hover effects only where a real pointer hovers: on touch screens a tap never starts a repaint */
+@media (hover: hover) and (pointer: fine) {
+  .service:hover { transform: translateY(-5px); }
+  .service:hover::before, .service:hover::after { opacity: 1; }
+  .service__media img { opacity: 0.85; transition: opacity 0.7s var(--ease-out); } /* opacity only: composited, no resampling shimmer */
+  .service:hover .service__media img { opacity: 1; }
+  .service:hover .art-fill { fill: var(--gold); }
+  .service:hover .art-draw { animation: redraw 1.1s var(--ease-out); }
+  .service:hover .art-squiggle { opacity: 0; }
+  .service:hover .art-check { stroke-dashoffset: 0; }
+  .service:hover .art-needle { transform: rotate(78deg); }
+  .service:hover .art-star { transform: rotate(90deg) scale(1.06); fill: rgba(232, 211, 166, 0.3); }
+  .service:hover .art-tick { stroke-dashoffset: 0; }
+  .service:hover .art-tick.t2 { transition-delay: 0.15s; }
+  .service:hover .art-tick.t3 { transition-delay: 0.3s; }
+}
+/* Touch screens: no spotlight layers, and the line-art is shown finished and still, so nothing in the
+   cards re-draws while scrolling (re-drawing on-screen tiles is what glitches on some Android GPUs) */
+@media (hover: none), (pointer: coarse) {
+  .service::before, .service::after { display: none; }
+  .art-squiggle { opacity: 0; }
+  .art-check, .art-tick { stroke-dashoffset: 0; }
+  .art-needle { transform: rotate(60deg); }
+  .art-fill { fill: var(--gold); }
+  .service__art, .service__art * { transition: none; }
 }
 
 /* ==========================================================================
@@ -1532,7 +1534,7 @@ em { font-style: italic; }
   padding: 26px 30px;
   border-radius: var(--radius-l);
   border: 1px solid var(--line);
-  background: linear-gradient(90deg, rgba(207, 174, 109, 0.07), rgba(255, 255, 255, 0.015) 60%);
+  background: linear-gradient(90deg, #15130f, #0b0b0c 60%); /* = 7% gold → 1.5% white over --bg, pre-blended (opaque) */
 }
 .work__cta p { margin: 0; font: italic 400 clamp(1.4rem, 2.2vw, 1.95rem)/1.2 var(--font-display); }
 
@@ -1541,7 +1543,7 @@ em { font-style: italic; }
    ========================================================================== */
 .timeline { position: relative; }
 .timeline__rail { position: absolute; left: 0; right: 0; top: 18px; height: 1px; background: var(--line-2); }
-.timeline__fill { position: absolute; inset: 0; background: var(--metal); transform-origin: 0 50%; transform: scaleX(var(--tl, 0)); }
+.timeline__fill { position: absolute; inset: 0; background: var(--metal); transform-origin: 0 50%; transform: scaleX(var(--tl, 0)); will-change: transform; }
 .timeline__steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin: 0; padding: 0; list-style: none; }
 .step { position: relative; padding-top: 70px; }
 .step__node {
@@ -1615,28 +1617,21 @@ em { font-style: italic; }
   padding: clamp(28px, 3vw, 40px);
   border-radius: var(--radius-l);
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012));
+  background: linear-gradient(180deg, #111112, #0a0a0b); /* = 4% → 1.2% white over --bg, pre-blended (opaque) */
   transition: transform 0.6s var(--ease-out), border-color 0.4s;
 }
-.plan:hover { transform: translateY(-6px); border-color: var(--line-2); }
+@media (hover: hover) and (pointer: fine) { .plan:hover { transform: translateY(-6px); border-color: var(--line-2); } }
 .plan--featured {
   border-color: transparent;
+  --line: #3b3629; /* hairlines inside: 8.5% warm white pre-blended over this warmer, gold-lit surface */
+  /* The gold hairline is a border-box background layer showing through the transparent border:
+     the same look as a masked ring, without a mask (cheaper and safer to rasterise). */
   background:
-    radial-gradient(120% 70% at 50% 0%, rgba(207, 174, 109, 0.17), transparent 62%),
-    linear-gradient(180deg, #17150f, #0e0d0b);
+    radial-gradient(120% 70% at 50% 0%, rgba(207, 174, 109, 0.17), transparent 62%) padding-box,
+    linear-gradient(180deg, #17150f, #0e0d0b) padding-box,
+    linear-gradient(160deg, rgba(243, 227, 187, 0.95), rgba(184, 145, 76, 0.4) 35%, rgba(184, 145, 76, 0.1) 65%, rgba(234, 209, 154, 0.7)) border-box,
+    linear-gradient(180deg, #17150f, #0e0d0b) border-box;
   box-shadow: 0 50px 100px -50px rgba(207, 174, 109, 0.35);
-}
-.plan--featured::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(160deg, rgba(243, 227, 187, 0.95), rgba(184, 145, 76, 0.4) 35%, rgba(184, 145, 76, 0.1) 65%, rgba(234, 209, 154, 0.7));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
 }
 .plan--featured:hover { border-color: transparent; }
 .plan__kicker { margin: 0 0 14px; font: 400 0.6875rem/1.3 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
@@ -1665,7 +1660,7 @@ em { font-style: italic; }
   padding: 22px 26px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.015);
+  background: #0b0b0c; /* = 1.5% white over --bg, pre-blended (opaque) */
   font-size: 0.875rem;
   color: var(--text-2);
 }
@@ -1720,7 +1715,7 @@ em { font-style: italic; }
   padding: clamp(22px, 3.4vw, 44px);
   border-radius: 32px;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014));
+  background: linear-gradient(180deg, #121213, #0a0a0b); /* = 4.5% → 1.4% white over --bg, pre-blended (opaque) */
   box-shadow: 0 60px 120px -60px rgba(0, 0, 0, 0.95);
 }
 .form-card::before {
@@ -2131,6 +2126,16 @@ em { font-style: italic; }
   .layer--chip-a > *,
   .layer--chip-b > * { animation: none; }
   body::after { display: none; }
+}
+
+/* Touch screens: content is drawn once and then left alone while scrolling. Entrance fades, the
+   statement's word-by-word lighting and the nav's frosted-glass blur all re-draw on-screen tiles
+   during a scroll, which some Android GPUs turn into flickering patches or coloured noise. */
+@media (hover: none), (pointer: coarse) {
+  .js .reveal, .js .reveal.is-in { opacity: 1; translate: none; animation: none; }
+  .js .statement__text .w { opacity: 1; transition: none; }
+  .principle::before { transform: scaleX(1); transition: none; }
+  .nav::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: #0a0a0b; }
 }
 
 @media print {
