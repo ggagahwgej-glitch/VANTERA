@@ -30,10 +30,12 @@ assets/
   fonts/                    Self-hosted fonts (SIL Open Font License, see OFL.txt)
   brand/                    Official logo + icons + share image
   portfolio/                Optimised project screenshots (generated)
+  services/                 Service-card thumbnails (generated, see below)
 favicon.ico, site.webmanifest, robots.txt
 vercel.json, .vercelignore  Hosting config (caching + security headers)
 tools/
-  capture/                  Automatic screenshot capture of live demos (GitHub Action)
+  capture/                  Automatic screenshot capture of live demos (GitHub Action),
+                            plus services.mjs for the service-card thumbnails (run manually)
   brand/build.mjs           Regenerates logo sizes and icons from the master logo
   og/                       Source + renderer for the social share image
 ```
@@ -114,6 +116,37 @@ Prefer your own screenshots? Save WebP files with these sizes:
 - `desktopSmall`: 800 × 500
 - `mobile`: 480 × 1039
 - full-page images: 1200 / 700 / 400 px wide
+
+---
+
+## Service-card thumbnails
+
+Each of the six service cards opens with a quiet window onto real VANTERA project work: a hand-picked crop of the portfolio captures.
+
+| Card | Shows |
+|---|---|
+| 01 Premium Website Development | Imperial Royal: Signature Collection |
+| 02 High-Converting Landing Pages | Elite Academy: landing-page hero |
+| 03 Website Error Fixing & Bug Resolution | ABC Estates: curated collections |
+| 04 Website Optimization | Imperial Royal: search and filter interface |
+| 05 AI-Assisted Development | Elite Academy: programme cards |
+| 06 Website Testing & Quality Assurance | All three demos on mobile |
+
+- Files are `assets/services/service-01…06-{480,720,960}.webp` (2:1). The browser downloads only the size the screen needs, and the largest file is under 30 KB.
+- They are decorative (empty `alt`, hidden from screen readers), so assistive technology reads the cards exactly as before.
+- The `sizes` attribute deliberately states a width about 16% larger than the rendered window. Without that margin Chrome sometimes picks the next smaller file, which looks soft on high-density screens. A comment in `index.html` explains this.
+- The dark veil behind the card number and line icon is baked into the image files, and the only animation is an opacity change on hover, so nothing has to be repainted while scrolling.
+
+**Regenerating.** This is manual on purpose and not part of the capture workflow, so a redesign of a live demo can't silently move a crop onto an awkward part of the page:
+
+```bash
+cd tools/capture && npm install --no-save sharp@0.33.5 && node services.mjs
+```
+
+The crops are listed at the top of `tools/capture/services.mjs` (`left`, `top`, `width`, `height` in capture pixels). When changing them:
+- keep every crop at least 960 source pixels wide, so nothing is upscaled;
+- leave calm space at the top for the number and icon;
+- keep the demos' illustrative statistics out of frame.
 
 ---
 
@@ -222,6 +255,10 @@ Netlify, Cloudflare Pages and GitHub Pages work the same way.
 - Every validation rule was exercised.
 - The WhatsApp message was verified word for word.
 - "Copy message" and "Copy number" put the right text on the clipboard.
+
+**Service thumbnails**
+- Checked at 14 widths (360–2560 px) and 11 screen and pixel-density combinations: the right file is chosen and stays sharp, the window keeps its 2:1 shape, the number and icon stay inside it, and nothing overflows.
+- Scrolling cost was measured against the page without thumbnails: the difference is within measurement noise.
 
 **Interface behaviour**
 - Portfolio filters, FAQ accordion (one answer open at a time), mobile menu, reduced motion and no-JavaScript mode were all checked.

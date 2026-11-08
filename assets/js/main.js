@@ -599,6 +599,10 @@
     }
   }
 
+  /* Service thumbnails: if one ever fails to load, remove it so the card keeps its dark
+     window instead of showing a broken-image box. */
+  $$(".service__media img").forEach((img) => img.addEventListener("error", () => img.remove(), { once: true }));
+
   /* ==========================================================================
      8. Micro-interactions: spotlight cards, magnetic buttons
      ========================================================================== */

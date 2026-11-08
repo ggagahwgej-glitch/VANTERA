@@ -1042,7 +1042,9 @@ em { font-style: italic; }
   isolation: isolate;
   border-radius: var(--radius-l);
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012));
+  /* = 3.6% → 1.2% white over --bg, pre-blended and opaque: renders identically on every GPU/rasteriser
+     and keeps the column guides from running through the card and breaking around the thumbnail */
+  background: linear-gradient(180deg, #101011, #0a0a0b);
   transition: transform 0.6s var(--ease-out), border-color 0.4s;
 }
 .service::before {
@@ -1070,8 +1072,46 @@ em { font-style: italic; }
 }
 .service:hover { transform: translateY(-5px); }
 .service:hover::before, .service:hover::after { opacity: 1; }
-.service__top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 52px; }
-.service__num { font: 400 0.75rem/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-3); }
+/* Top band = a quiet window onto real project work; number and line-art sit on top of it */
+.service__top {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  aspect-ratio: 2 / 1;
+  margin-bottom: 30px;
+  padding: 16px 16px 0 18px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--bg-2);
+}
+.service__media { position: absolute; inset: 0; z-index: 0; }
+.service__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.56;
+  transition: opacity 0.7s var(--ease-out); /* opacity only: composited, no resampling shimmer */
+}
+/* The legibility veil under the number and line-art is baked into the image files
+   (tools/capture/services.mjs): no live gradients to repaint while scrolling. */
+.service:hover .service__media img { opacity: 0.84; }
+/* hairline frame drawn above the image, so rounded corners never show a seam */
+.service__top::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(244, 236, 222, 0.1);
+  pointer-events: none;
+}
+.service__num, .service__art { position: relative; z-index: 2; }
+.service__num { font: 400 0.75rem/1 var(--font-mono); letter-spacing: 0.16em; color: var(--text-2); padding-top: 2px; }
+@media (hover: none) { .service__media img { opacity: 0.66; } }
 .service__title { margin: 0 0 14px; font: 400 clamp(1.65rem, 2.15vw, 2.05rem)/1.06 var(--font-display); letter-spacing: -0.005em; text-wrap: balance; }
 .service__desc { margin: 0 0 24px; font-size: 0.95rem; color: var(--text-2); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 28px; padding: 0; list-style: none; }
@@ -1110,6 +1150,10 @@ em { font-style: italic; }
   stroke-linecap: round;
   stroke-linejoin: round;
   overflow: visible;
+}
+/* narrow thumbnail windows (2-up tablets, 3-up small laptops): smaller line-art, same ~1.2px stroke */
+@media (min-width: 700px) and (max-width: 899px), (min-width: 1100px) and (max-width: 1299px) {
+  .service__art { width: 52px; height: 52px; stroke-width: 1.45; }
 }
 .art-browser circle { fill: rgba(232, 211, 166, 0.78); stroke: none; }
 .art-fill { fill: rgba(232, 211, 166, 0.14); transition: fill 0.5s; }
@@ -2060,8 +2104,9 @@ em { font-style: italic; }
   .work__cta .btn { width: 100%; }
   .case__actions .btn { width: 100%; }
   .disclaimer { padding: 18px; }
-  .service { min-height: 0; padding: 26px 22px 22px; }
-  .service__top { margin-bottom: 36px; }
+  .service { min-height: 0; padding: 22px 22px 22px; }
+  .service__top { margin-bottom: 24px; padding: 14px 12px 0 16px; border-radius: 14px; }
+  .service__art { width: 52px; height: 52px; stroke-width: 1.45; } /* same ~1.2px line weight at the smaller size */
   .layer--chip-b { display: none; }
 }
 @media (max-width: 380px) {
