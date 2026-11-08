@@ -51,6 +51,20 @@ async function walkPage(page) {
   });
 }
 
+/** Load twice: the second (warm-cache) load renders web fonts exactly as returning visitors see them. */
+async function open(page, url, wait) {
+  await page.goto(url, { waitUntil: 'load', timeout: 90000 });
+  await settle(page, 2000);
+  await page.reload({ waitUntil: 'load', timeout: 90000 });
+  await settle(page, wait);
+  try {
+    const fonts = await page.evaluate(() =>
+      [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family} ${f.weight} ${f.style}`))]
+    );
+    console.log(`  fonts: ${fonts.join(' | ') || '(none reported)'}`);
+  } catch {}
+}
+
 async function toWebp(buf, file, quality = 86) {
   await sharp(buf).webp({ quality, effort: 5 }).toFile(path.join(outDir, file));
   const meta = await sharp(path.join(outDir, file)).metadata();
@@ -69,8 +83,7 @@ for (const { slug, url } of targets) {
       reducedMotion: 'no-preference',
     });
     const dp = await desk.newPage();
-    await dp.goto(url, { waitUntil: 'load', timeout: 90000 });
-    await settle(dp, 4500);
+    await open(dp, url, 4500);
     await toWebp(await dp.screenshot({ type: 'png' }), `${slug}-desktop.webp`);
     await desk.close();
 
@@ -81,8 +94,7 @@ for (const { slug, url } of targets) {
       reducedMotion: 'no-preference',
     });
     const dfp = await deskFull.newPage();
-    await dfp.goto(url, { waitUntil: 'load', timeout: 90000 });
-    await settle(dfp, 3500);
+    await open(dfp, url, 3500);
     await walkPage(dfp);
     await settle(dfp, 2500);
     const dh = await dfp.evaluate(() => document.documentElement.scrollHeight);
@@ -98,15 +110,13 @@ for (const { slug, url } of targets) {
     const iphone = devices['iPhone 13'];
     const mob = await browser.newContext({ ...iphone, reducedMotion: 'no-preference' });
     const mp = await mob.newPage();
-    await mp.goto(url, { waitUntil: 'load', timeout: 90000 });
-    await settle(mp, 4500);
+    await open(mp, url, 4500);
     await toWebp(await mp.screenshot({ type: 'png' }), `${slug}-mobile.webp`);
     await mob.close();
 
     const mobFull = await browser.newContext({ ...iphone, deviceScaleFactor: 2, reducedMotion: 'no-preference' });
     const mfp = await mobFull.newPage();
-    await mfp.goto(url, { waitUntil: 'load', timeout: 90000 });
-    await settle(mfp, 3500);
+    await open(mfp, url, 3500);
     await walkPage(mfp);
     await settle(mfp, 2500);
     const mh = await mfp.evaluate(() => document.documentElement.scrollHeight);
