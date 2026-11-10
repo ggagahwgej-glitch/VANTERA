@@ -63,12 +63,24 @@ async function walkPage(page) {
   });
 }
 
+/** Screenshots never show scrollbars. Sites that force a classic scrollbar (overflow-y: scroll, a gutter or a
+ *  custom ::-webkit-scrollbar) would otherwise be captured 15px narrower, with a strip down the right edge. */
+const NO_SCROLLBARS = `
+  *, *::before, *::after { scrollbar-width: none !important; }
+  html, body { scrollbar-gutter: auto !important; }
+  ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+`;
+
 /** Load twice: the second (warm-cache) load renders web fonts exactly as returning visitors see them. */
 async function open(page, url, wait) {
   await page.goto(url, { waitUntil: 'load', timeout: 90000 });
   await settle(page, 2000);
   await page.reload({ waitUntil: 'load', timeout: 90000 });
   await settle(page, wait);
+  try {
+    await page.addStyleTag({ content: NO_SCROLLBARS });
+    await page.waitForTimeout(400); // let the page re-layout at the full viewport width
+  } catch {}
   try {
     const fonts = await page.evaluate(() =>
       [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family} ${f.weight} ${f.style}`))]
