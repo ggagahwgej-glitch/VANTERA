@@ -228,6 +228,7 @@
             c.style.setProperty("--i", i++);
             c.classList.add("is-in");
             loadPreview(c);
+            measureCase(c); // sizes go stale if the window was resized while this case was hidden
           }
         });
         casesWrap.classList.toggle("is-stacked", i > 1);

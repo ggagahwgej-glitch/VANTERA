@@ -3,6 +3,7 @@
  *
  *   node derive.mjs              → every slug in targets.json
  *   node derive.mjs my-project   → one slug
+ *   CAPTURE_MODE=missing         → only slugs whose site images don't exist yet (push runs)
  *
  * Writes to assets/portfolio/:
  *   <slug>-desktop-1600.webp  1600×1000  first screen (16:10)       → images.desktop
@@ -25,8 +26,9 @@ const dest = path.resolve(here, '../../assets/portfolio');
 await fs.mkdir(dest, { recursive: true });
 
 const targets = JSON.parse(await fs.readFile(path.join(here, 'targets.json'), 'utf8'));
-const only = process.argv[2];
+const only = (process.argv[2] || '').trim();
 const exists = (f) => fs.access(f).then(() => true, () => false);
+const missingOnly = !only && process.env.CAPTURE_MODE === 'missing';
 
 async function save(pipeline, name) {
   const file = path.join(dest, name);
@@ -37,6 +39,7 @@ async function save(pipeline, name) {
 
 for (const { slug } of targets) {
   if (only && slug !== only) continue;
+  if (missingOnly && (await exists(path.join(dest, `${slug}-desktop-1600.webp`)))) continue;
   console.log(`▶ ${slug}`);
   const desktop = path.join(src, `${slug}-desktop.webp`);
   const full = path.join(src, `${slug}-full.webp`);
