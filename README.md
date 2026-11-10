@@ -96,7 +96,14 @@ Three ready-made slots are already in the file with `visible: false`:
    ```json
    { "slug": "my-project", "url": "https://my-project.vercel.app/" }
    ```
-3. **Commit and push.** The **Capture portfolio screenshots** GitHub Action opens the live site in a real browser, generates the six optimised images in `assets/portfolio/`, and commits them back automatically. It takes about 3–5 minutes; you can follow it in the repository's **Actions** tab or start it manually with **Run workflow**. Run `git pull` afterwards.
+3. **Commit and push** (to any branch). The **Capture portfolio screenshots** GitHub Action then:
+   - opens the new demo in a real browser;
+   - generates the six optimised images in `assets/portfolio/`;
+   - commits them back to the same branch.
+
+   It takes about 3–5 minutes. You can follow it in the repository's **Actions** tab; run `git pull` afterwards.
+
+   A push only captures projects that don't have screenshots yet, so the existing images never change unexpectedly. To refresh screenshots after a demo changes, open **Actions → Capture portfolio screenshots → Run workflow**. Leave **only** empty to re-capture every project, or enter one slug.
 4. **Copy an existing project block in `site-config.js`.** Edit the text, point the images at the new slug, and set `visible: true`:
    ```js
    images: {

@@ -1,8 +1,10 @@
 name: Capture portfolio screenshots
 
 on:
+  # Push (any branch, when capture files change): captures only projects that have no screenshots yet.
+  # Manual "Run workflow": re-captures every project, or just the one entered in "only".
   push:
-    branches: [main, arena/5603798b-vantera]
+    branches: ['**']
     paths:
       - .github/workflows/capture-portfolio.yml
       - tools/capture/capture.mjs
@@ -19,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: capture-portfolio
+  group: capture-portfolio-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,12 +46,14 @@ jobs:
         working-directory: tools/capture
         env:
           ONLY: ${{ inputs.only }}
+          CAPTURE_MODE: ${{ github.event_name == 'push' && 'missing' || 'all' }}
         run: node capture.mjs "$ONLY"
 
       - name: Derive optimised site images
         working-directory: tools/capture
         env:
           ONLY: ${{ inputs.only }}
+          CAPTURE_MODE: ${{ github.event_name == 'push' && 'missing' || 'all' }}
         run: node derive.mjs "$ONLY"
 
       - name: Commit screenshots

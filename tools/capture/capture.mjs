@@ -9,6 +9,8 @@
  *
  *   node capture.mjs              → every target in targets.json
  *   node capture.mjs my-project   → one slug only (the workflow's "only" input)
+ *   CAPTURE_MODE=missing          → only targets that have no screenshots yet (push runs), so adding
+ *                                   a project never re-captures the others
  *
  * Runs in GitHub Actions (see .github/workflows/capture-portfolio.yml).
  * The site's optimised images are generated from these sources.
@@ -29,6 +31,8 @@ if (only && !targets.some((t) => t.slug === only)) {
   console.error(`Unknown slug "${only}". Slugs in targets.json: ${targets.map((t) => t.slug).join(', ')}`);
   process.exit(1);
 }
+const missingOnly = !only && process.env.CAPTURE_MODE === 'missing';
+const exists = (f) => fs.access(f).then(() => true, () => false);
 
 const DESKTOP_FULL_CAP = 7000; // CSS px
 const MOBILE_FULL_CAP = 5200; // CSS px
@@ -83,6 +87,10 @@ const browser = await chromium.launch();
 
 for (const { slug, url } of targets) {
   if (only && slug !== only) continue;
+  if (missingOnly && (await exists(path.join(outDir, `${slug}-desktop.webp`)))) {
+    console.log(`• ${slug}: already captured (run the workflow manually to refresh)`);
+    continue;
+  }
   console.log(`\n▶ ${slug}  ${url}`);
   try {
     // ---------- Desktop ----------
