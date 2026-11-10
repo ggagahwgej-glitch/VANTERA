@@ -9,6 +9,11 @@ on:
       - tools/capture/derive.mjs
       - tools/capture/targets.json
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Capture one project only: its slug from tools/capture/targets.json (leave empty for all)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -37,11 +42,15 @@ jobs:
 
       - name: Capture live demos
         working-directory: tools/capture
-        run: node capture.mjs
+        env:
+          ONLY: ${{ inputs.only }}
+        run: node capture.mjs "$ONLY"
 
       - name: Derive optimised site images
         working-directory: tools/capture
-        run: node derive.mjs
+        env:
+          ONLY: ${{ inputs.only }}
+        run: node derive.mjs "$ONLY"
 
       - name: Commit screenshots
         run: |

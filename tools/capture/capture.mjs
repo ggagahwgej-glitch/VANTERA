@@ -7,6 +7,9 @@
  *   <slug>-mobile.webp        390×844 viewport @3x  (iPhone-sized)
  *   <slug>-mobile-full.webp   full mobile page @2x (capped height)
  *
+ *   node capture.mjs              → every target in targets.json
+ *   node capture.mjs my-project   → one slug only (the workflow's "only" input)
+ *
  * Runs in GitHub Actions (see .github/workflows/capture-portfolio.yml).
  * The site's optimised images are generated from these sources.
  */
@@ -21,6 +24,11 @@ const outDir = path.join(here, 'out');
 await fs.mkdir(outDir, { recursive: true });
 
 const targets = JSON.parse(await fs.readFile(path.join(here, 'targets.json'), 'utf8'));
+const only = (process.argv[2] || '').trim();
+if (only && !targets.some((t) => t.slug === only)) {
+  console.error(`Unknown slug "${only}". Slugs in targets.json: ${targets.map((t) => t.slug).join(', ')}`);
+  process.exit(1);
+}
 
 const DESKTOP_FULL_CAP = 7000; // CSS px
 const MOBILE_FULL_CAP = 5200; // CSS px
@@ -74,6 +82,7 @@ async function toWebp(buf, file, quality = 86) {
 const browser = await chromium.launch();
 
 for (const { slug, url } of targets) {
+  if (only && slug !== only) continue;
   console.log(`\n▶ ${slug}  ${url}`);
   try {
     // ---------- Desktop ----------
