@@ -102,6 +102,31 @@ window.VANTERA_CONFIG = {
       },
       alt: "Elite Academy coaching landing page — hero section with admission call-to-action",
     },
+    {
+      visible: true,
+      title: "The Food Garden",
+      subtitle: "Single-Page Restaurant Website",
+      category: "Website Development",
+      label: "Concept project",
+      description:
+        "A warm, inviting single-page website for a multi-cuisine restaurant, bringing the menu, table requests and visit details together in one smooth scroll.",
+      highlights: [
+        "Searchable menu with dish photos, prices and ratings",
+        "Table requests sent as a ready-to-send WhatsApp message",
+        "Location, directions and opening hours in one place",
+      ],
+      demoUrl: "https://restaurant-lyart-ten.vercel.app/",
+      tint: "rgba(200, 104, 66, 0.2)", // terracotta, from the restaurant's own palette
+      images: {
+        desktop: "assets/portfolio/the-food-garden-desktop-1600.webp",
+        desktopSmall: "assets/portfolio/the-food-garden-desktop-800.webp",
+        fullPage: "assets/portfolio/the-food-garden-full-1200.webp",
+        fullPageSmall: "assets/portfolio/the-food-garden-full-700.webp",
+        mobile: "assets/portfolio/the-food-garden-mobile.webp",
+        mobileFull: "assets/portfolio/the-food-garden-mobile-full.webp",
+      },
+      alt: "The Food Garden restaurant website — hero section with a spread of biryani, curries, naan and pizza",
+    },
 
     /* ----------------------------------------------------------------------
        Ready-to-use slots — set visible: true once a public demo is available.

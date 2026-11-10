@@ -115,7 +115,8 @@ Three ready-made slots are already in the file with `visible: false`:
      mobileFull: "assets/portfolio/my-project-mobile-full.webp",
    },
    ```
-5. Commit and deploy.
+5. **Optional:** add the link to the short list shown to visitors without JavaScript. Search `index.html` for `cases-noscript`.
+6. Commit and deploy.
 
 Prefer your own screenshots? Save WebP files with these sizes:
 

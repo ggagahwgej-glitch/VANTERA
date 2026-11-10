@@ -1416,6 +1416,10 @@ em { font-style: italic; }
   transition: opacity 0.6s var(--ease-out), transform 1.6s var(--ease-out);
 }
 .is-ready > .shot-full { opacity: 1; }
+/* Must outrank `.frame__view > img` / `.phone__screen > img` (height: 100%). Otherwise the long screenshot is
+   squeezed to the frame and the preview has nothing to scroll (--shift measures 0). */
+.frame__view > .shot-full,
+.phone__screen > .shot-full { inset: 0 0 auto 0; height: auto; }
 .case__phone {
   position: absolute;
   right: clamp(14px, 3%, 34px);
